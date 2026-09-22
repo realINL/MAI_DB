@@ -97,3 +97,73 @@ Relation - отношения\
 
 * **`NO ACTION` (Без действия / Отложенная проверка)**  
     Позволяет временно вставить запись в дочернюю таблицу с указанием еще не существующего родительского ID. Проверка связи переносится на момент завершения транзакции (`COMMIT`), к которому родительская строка уже обязана быть создана.
+
+## 19 Сентября – Практика
+**Создание таблиц**
+```sql
+CREATE TABLE nam (
+    u_id SERIAL PRIMARY KEY,
+    n_val VARCHAR(50) NOT NULL
+);
+
+CREATE TABLE fam (
+    u_id SERIAL PRIMARY KEY,
+    f_val VARCHAR(50) NOT NULL
+);
+
+CREATE TABLE otc (
+    u_id SERIAL PRIMARY KEY,
+    o_val VARCHAR(50) NOT NULL
+);
+
+CREATE TABLE street (
+    u_id SERIAL PRIMARY KEY,
+    s_val VARCHAR(50) NOT NULL
+);
+
+CREATE TABLE people (
+    u_id SERIAL PRIMARY KEY,
+    fam INT REFERENCES fam(u_id),
+    nam INT REFERENCES nam(u_id),
+    otc INT REFERENCES otc(u_id),
+    street INT REFERENCES street(u_id),
+    bldn VARCHAR(5),
+    bldn_k VARCHAR(5),
+    appr INT,
+    telef_n VARCHAR(30)
+);
+```
+**Вывод объединённой таблицы**
+```sql
+SELECT people.u_id, fam.f_val, nam.n_val, otc.o_val, street.s_val, people.bldn, people.bldn_k, people.appr, people.telef_n
+FROM people
+    JOIN fam ON people.fam = fam.u_id
+    JOIN nam ON people.nam = nam.u_id
+    JOIN otc ON people.otc = otc.u_id
+    JOIN street ON people.street = street.u_id
+```  
+
+
+**`cross join`** – перекрестное соединение
+Возвращает все возможные комбинации сочетаний значений.
+
+|name|surname|
+| -- | -- |
+| Иван | Иванов|
+| Петр | Петров|
+
+
+```sql
+SELECT name, surname 
+FROM name
+CROSS JOIN surname ORDER BY DESC;
+```
+**Результат выполнения:**
+
+| name | surname |
+|------|---------|
+| Иван | Иванов  |
+| Иван | Петров  |
+| Петр | Петров  |
+| Петр | Иванов  |
+
