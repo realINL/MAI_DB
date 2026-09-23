@@ -14,11 +14,16 @@
 --     cross JOIN street
 
 -- CREATE TABLE name (
---     name VARCHAR(50),
---     surname VARCHAR(50)
--- )
--- INSERT INTO name(name, surname) VALUES ('Иван', 'Иванов'), ('Петр', 'Петров')
+--     name VARCHAR(50)
+-- );
+-- INSERT INTO name(name) VALUES ('Иванов'), ('Петров')
 
-SELECT n1.name, n2.surname
-FROM name n1
-CROSS JOIN name n2;
+-- CREATE TABLE surname (
+--     surname VARCHAR(50)
+-- );
+-- INSERT INTO surname(surname) VALUES ('Иванов'), ('Петров')
+
+SELECT n.name, s.surname
+FROM name n
+CROSS JOIN surname s ORDER BY n.name ASC
+
