@@ -1,0 +1,3 @@
+pyodbc
+PyQt5
+python-dotenv
