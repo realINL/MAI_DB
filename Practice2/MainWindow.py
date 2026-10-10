@@ -14,6 +14,7 @@ from PyQt5.QtWidgets import (
 )
 
 from AddDataWindow import AddDataWindow
+from EditDataWindow import EditDataWindow
 from db import Database
 
 PEOPLE_HEADERS = [
@@ -35,6 +36,7 @@ class MyWindow(QMainWindow):
         self.db = db
         self._lookups = {}
         self._add_window = None
+        self._editData_window = None
         self._people_view = True
         self.initUI()
         self.load_lookups()
@@ -53,15 +55,28 @@ class MyWindow(QMainWindow):
         self.combo_nam = self._make_filter_combo("Имя")
         self.combo_otc = self._make_filter_combo("Отчество")
         self.combo_street = self._make_filter_combo("Улица")
-        filter_row.addWidget(self.combo_fam["box"])
-        filter_row.addWidget(self.combo_nam["box"])
-        filter_row.addWidget(self.combo_otc["box"])
-        filter_row.addWidget(self.combo_street["box"])
+        self.home_combo = QLineEdit(self)
+        self.home_combo.setPlaceholderText("№ Дома")
+        self.telef_combo = QLineEdit(self)
+        self.telef_combo.setPlaceholderText("Телефон")
+        for filter in (
+            self.combo_fam,
+            self.combo_nam,
+            self.combo_otc,
+            self.combo_street,
+        ):
+            filter_row.addWidget(filter["box"])
+        filter_row.addWidget(self.home_combo)
+        filter_row.addWidget(self.telef_combo)
+
+
         layout.addLayout(filter_row)
 
         buttons_row = QHBoxLayout()
         self.btn_add = QPushButton("Добавить данные…", self)
         self.btn_add.clicked.connect(self.open_add_window)
+        self.btn_edit = QPushButton("Изменить данные…", self)
+        self.btn_edit.clicked.connect(self.open_edit_window)
         self.btn_filter = QPushButton("Применить фильтр", self)
         self.btn_filter.clicked.connect(self.refresh_table)
         self.btn_reset = QPushButton("Сбросить", self)
@@ -75,6 +90,7 @@ class MyWindow(QMainWindow):
 
         for btn in (
             self.btn_add,
+            self.btn_edit,
             self.btn_filter,
             self.btn_reset,
             self.btn_delete_filter,
@@ -116,6 +132,19 @@ class MyWindow(QMainWindow):
         self._add_window.raise_()
         self._add_window.activateWindow()
 
+    def open_edit_window(self):
+        if self._editData_window is None:
+            self._editData_window = EditDataWindow(
+                self.db,
+                on_data_changed=self.on_data_changed,
+                parent=self,
+            )
+        else:
+            self._editData_window.reload()
+        self._editData_window.show()
+        self._editData_window.raise_()
+        self._editData_window.activateWindow()
+
     def on_data_changed(self):
         self.load_lookups()
         self.refresh_table()
@@ -156,16 +185,22 @@ class MyWindow(QMainWindow):
             self._repopulate_combo(ui["combo"], rows)
 
     def _filter_ids(self):
+        phone = self.telef_combo.text().strip() or None
+        home = self.home_combo.text().strip() or None
         return (
             self.combo_fam["combo"].currentData(),
             self.combo_nam["combo"].currentData(),
             self.combo_otc["combo"].currentData(),
             self.combo_street["combo"].currentData(),
+            phone,
+            home
         )
 
     def reset_filters(self):
         for key in ("combo_fam", "combo_nam", "combo_otc", "combo_street"):
             getattr(self, key)["combo"].setCurrentIndex(0)
+        self.telef_combo.clear()
+        self.home_combo.clear()
         self.refresh_table()
 
     def _fill_table(self, columns, rows, *, people_view: bool):
@@ -204,9 +239,9 @@ class MyWindow(QMainWindow):
         self.status_label.setText(f"Строк в результате: {result['rowcount']}")
 
     def refresh_table(self):
-        fam_id, nam_id, otc_id, street_id = self._filter_ids()
+        fam_id, nam_id, otc_id, street_id, telef_n, home_n = self._filter_ids()
         try:
-            rows = self.db.fetch_people(fam_id, nam_id, otc_id, street_id)
+            rows = self.db.fetch_people(fam_id, nam_id, otc_id, street_id, telef_n, home_n)
         except Exception as e:
             QMessageBox.critical(self, "Ошибка", f"Не удалось загрузить данные:\n{e}")
             return
@@ -215,7 +250,7 @@ class MyWindow(QMainWindow):
         self.status_label.setText(f"Записей: {len(rows)}")
 
     def delete_by_filter(self):
-        fam_id, nam_id, otc_id, street_id = self._filter_ids()
+        fam_id, nam_id, otc_id, street_id, phone_n, home_n = self._filter_ids()
         if all(x is None for x in (fam_id, nam_id, otc_id, street_id)):
             QMessageBox.warning(
                 self,

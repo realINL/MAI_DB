@@ -163,7 +163,7 @@ class Database:
         self.connection.commit()
         return new_id
 
-    def _people_where(self, fam_id=None, nam_id=None, otc_id=None, street_id=None):
+    def _people_where(self, fam_id=None, nam_id=None, otc_id=None, street_id=None, phone_n=None, home_n = None):
         clauses = []
         params = []
         if fam_id is not None:
@@ -178,17 +178,23 @@ class Database:
         if street_id is not None:
             clauses.append("p.street = ?")
             params.append(street_id)
+        if phone_n is not None:
+            clauses.append("p.telef_n ~ ?")
+            params.append(phone_n)
+        if home_n is not None:
+            clauses.append("p.bldn = ?")
+            params.append(home_n)
         if not clauses:
             return "", []
         return " WHERE " + " AND ".join(clauses), params
 
-    def fetch_people(self, fam_id=None, nam_id=None, otc_id=None, street_id=None):
-        where, params = self._people_where(fam_id, nam_id, otc_id, street_id)
+    def fetch_people(self, fam_id=None, nam_id=None, otc_id=None, street_id=None, telef_n=None, home_n = None):
+        where, params = self._people_where(fam_id, nam_id, otc_id, street_id, telef_n, home_n)
         sql = self.PEOPLE_SELECT + where + " ORDER BY p.u_id"
         return self.cursor.execute(sql, params).fetchall()
 
-    def delete_people(self, fam_id=None, nam_id=None, otc_id=None, street_id=None):
-        where, params = self._people_where(fam_id, nam_id, otc_id, street_id)
+    def delete_people(self, fam_id=None, nam_id=None, otc_id=None, street_id=None, phone_n=None, home_n = None):
+        where, params = self._people_where(fam_id, nam_id, otc_id, street_id, phone_n, home_n)
         if not where:
             return 0
         sql = f"DELETE FROM people p{where}"
@@ -208,3 +214,32 @@ class Database:
         deleted = cursor.rowcount
         self.connection.commit()
         return deleted
+
+    def _lookup_value_column(self, table: str) -> str:
+        if table not in self.LOOKUP_COLUMNS:
+            raise ValueError(f"Неизвестный справочник: {table}")
+        return self.LOOKUP_COLUMNS[table]
+
+    def update_lookup(self, table: str, u_id: int, value: str) -> None:
+        col = self._lookup_value_column(table)
+        self.cursor.execute(
+            f"UPDATE {table} SET {col} = ? WHERE u_id = ?",
+            (value, u_id),
+        )
+        self.connection.commit()
+
+    def delete_lookup(self, table: str, u_id: int) -> None:
+        if table not in self.LOOKUP_COLUMNS:
+            raise ValueError(f"Неизвестный справочник: {table}")
+        self.cursor.execute(f"DELETE FROM {table} WHERE u_id = ?", (u_id,))
+        self.connection.commit()
+
+    def count_lookup_usage(self, table: str, u_id: int) -> int:
+        print("lookup:")
+        self.cursor.execute(
+            f"SELECT COUNT(*) FROM people WHERE {table} = ?",
+            (u_id,),
+        )
+        result = self.cursor.fetchone()[0]
+        print(table, u_id, result)
+        return result
