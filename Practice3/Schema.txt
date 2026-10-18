@@ -1,0 +1,60 @@
+// Use DBML to define your database structure
+// Docs: https://dbml.dbdiagram.io/docs
+
+Table Hostel {
+  hostel_id uuid [primary key, not null] // id общежития
+  hostel_number integer [not null] // Номер общежития
+  address varchar  [not null] // Адрес общежития
+  district varchar [not null] // Район города, в котором расположено
+  picture varchar   // Фотография общежития
+  owner varchar     [not null]  // Балансодержатель
+  rooms integer     [not null]  // Комнат в общежитии
+  beds integer      [not null]  // Количество койко-мест общежитии
+}
+
+Table RoomTypes {
+  type_id uuid [primary key, not null] // id типа комнаты
+  type varchar [not null] // Тип комнаты (одноместная и т.д.)
+}
+
+Table Rooms {
+  room_id uuid [primary key, not null] // id комнаты
+  roomID integer // номер комнаты
+  hostel_id uuid [not null] // Общежитие
+  square decimal [not null] // Площадь комнаты
+  comment text   // Примечания
+  roomBeds integer [not null] // Количество койко-мест в комнате
+  type uuid [not null] // Тип комнаты
+  storey integer [not null] // Номер этажа
+}
+
+Table Residents {
+  resident_id uuid [primary key, not null] // id жильца
+  room_id uuid // id комнаты
+  lodger varchar(5) [not null] // Регистрационный номер жильца
+  name varchar [not null] // ФИО жильца
+  passport varchar [not null] // Номер паспорта
+  passportDate date [not null] // Дата выдачи паспорта
+  region varchar [not null] // Кем выдан паспорт
+  work varchar [not null] // Место работы или учебы
+  children bool [not null] // С детьми (да/нет)
+}
+
+Table Documents {
+  document_id uuid [primary key, not null] // id документа на заселение
+  resident_id uuid // id жильца
+  document_number varchar [not null] // Номер документа на заселение
+  document_name varchar [not null] // Название документа на заселение
+  begin_date date [not null] // Начало действия документа
+  giver varchar [not null] // Кем выдан документ на заселение
+  docComment text // Комментарий
+  payment money [not null] // Плата за проживание в месяц
+  settlement date [not null] // Дата заселения в общежитие
+  end_date date [not null] // Дата выселения из общежития
+  reason text // Причина выселения
+}
+
+Ref: Rooms.hostel_id > Hostel.hostel_id
+Ref: Rooms.type > RoomTypes.type_id
+Ref: Residents.room_id > Rooms.room_id
+Ref: Residents.resident_id < Documents.resident_id
