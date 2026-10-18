@@ -193,13 +193,23 @@ class EditDataWindow(QMainWindow):
         used = self._rows[row][2]
 
         if used:
-            QMessageBox.warning(
+            reply = QMessageBox.question(
                 self,
                 "Удаление",
                 f"Значение «{text}» используется в {used} записях people.\n"
-                "Сначала измените или удалите эти записи.",
+                "Удалить все связанные данные из таблицы people?",
+                QMessageBox.Yes | QMessageBox.No,
+                QMessageBox.No,
             )
-            return
+            if reply != QMessageBox.Yes:
+                return
+            try:
+                self.db.delete_people(**{f"{table}_id": u_id})
+            except Exception as e:
+                QMessageBox.critical(
+                    self, "Ошибка", f"Не удалось удалить связанные данные:\n{e}"
+                )
+                return
 
         reply = QMessageBox.question(
             self,
